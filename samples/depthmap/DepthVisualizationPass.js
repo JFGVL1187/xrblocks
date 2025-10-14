@@ -13,6 +13,7 @@ export class DepthVisualizationPass extends xb.XRPass {
     this.depthTextures = [null, null];
     this.uniforms = {
       uDepthTexture: {value: null},
+      uDepthTextureArray: {value: null},
       uRawValueToMeters: {value: 8.0 / 65536.0},
       uAlpha: {value: 1.0},
       tDiffuse: {value: null},
@@ -46,7 +47,11 @@ export class DepthVisualizationPass extends xb.XRPass {
 
     if (!texture)
       return;
-    this.uniforms.uDepthTexture.value = texture;
+
+    if (texture.isExternalTexture) 
+      this.uniforms.uDepthTextureArray.value = texture;
+    else
+      this.uniforms.uDepthTexture.value = texture;
     this.uniforms.tDiffuse.value = readBuffer.texture;
     this.uniforms.uView.value = viewId;
     renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);

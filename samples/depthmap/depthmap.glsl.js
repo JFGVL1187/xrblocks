@@ -16,8 +16,8 @@ export const DepthMapShader = {
 
   precision mediump float;
 
-  uniform sampler2D uDephData;
-  uniform sampler2DArray uDepthTexture;
+  uniform sampler2D uDepthTexture;
+  uniform sampler2DArray uDepthTextureArray;
   uniform float uRawValueToMeters;
   uniform float uAlpha;
   uniform float uIsTextureArray;
@@ -65,9 +65,9 @@ export const DepthMapShader = {
     highp float real_depth;
     if (uIsTextureArray < 0.5) {
       uv.y = 1.0 - uv.y;
-      real_depth = DepthGetMeters(uDephData, uv);
+      real_depth = DepthGetMeters(uDepthTexture, uv);
     } else
-      real_depth = DepthArrayGetMeters(uDepthTexture, uv);
+      real_depth = DepthArrayGetMeters(uDepthTextureArray, uv);
     vec4 depth_visualization = vec4(
       TurboColormap(clamp(real_depth / 8.0, 0.0, 1.0)), 1.0);
     gl_FragColor = mix(diffuse, depth_visualization, uAlpha);

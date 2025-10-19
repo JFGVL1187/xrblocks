@@ -24,6 +24,28 @@ export class HandsInteraction extends xb.Script {
     const light = new THREE.DirectionalLight(0xffffff, 2);
     light.position.set(1, 1, 1).normalize();
     this.add(light);
+
+    // Gesture recognition integrations.
+    this.activeGestures = new Map();
+    this.gesturePalette = {
+      'pinch': 0xff6f00,
+      'open-palm': 0x00acc1,
+      'fist': 0x4e342e,
+      'thumbs-up': 0x8bc34a,
+      'point': 0x673ab7,
+      'spread': 0xff4081,
+    };
+    this._onGestureStart = this.handleGestureStart.bind(this);
+    this._onGestureEnd = this.handleGestureEnd.bind(this);
+    this._onGestureUpdate = this.handleGestureUpdate.bind(this);
+    if (xb.core.gestureRecognition) {
+      xb.core.gestureRecognition.addEventListener(
+          'gesturestart', this._onGestureStart);
+      xb.core.gestureRecognition.addEventListener(
+          'gestureend', this._onGestureEnd);
+      xb.core.gestureRecognition.addEventListener(
+          'gestureupdate', this._onGestureUpdate);
+    }
   }
 
   _updateColor() {
@@ -36,6 +58,22 @@ export class HandsInteraction extends xb.Script {
     } else {
       this.target.material.color.copy(this.originalColor);  // Yellow
     }
+    this._updateGestureHighlight();
+  }
+
+  _updateGestureHighlight() {
+    const material = this.target.material;
+    if (!material || !material.isMeshPhongMaterial) return;
+    const activeGestures = Array.from(this.activeGestures.values());
+    if (activeGestures.length === 0) {
+      material.emissive.setHex(0x000000);
+      material.emissiveIntensity = 0;
+      return;
+    }
+    const gesture = activeGestures[activeGestures.length - 1];
+    const color = this.gesturePalette[gesture] ?? 0xffffff;
+    material.emissive.setHex(color);
+    material.emissiveIntensity = 0.6;
   }
 
   onObjectTouchStart(event) {
@@ -110,5 +148,38 @@ export class HandsInteraction extends xb.Script {
 
     this.isGrabbing = false;
     this._handToObject = null;
+  }
+
+  handleGestureStart(event) {
+    const {name, hand, confidence} = event.detail;
+    console.log(
+        `[Gesture] ${hand} hand started ${name} (${confidence.toFixed(2)})`);
+    this.activeGestures.set(hand, name);
+    this._updateGestureHighlight();
+  }
+
+  handleGestureUpdate(event) {
+    const {name, hand, confidence} = event.detail;
+    if (!this.activeGestures.has(hand)) return;
+    console.log(
+        `[Gesture] ${hand} hand ${name} confidence ${confidence.toFixed(2)}`);
+  }
+
+  handleGestureEnd(event) {
+    const {name, hand} = event.detail;
+    console.log(`[Gesture] ${hand} hand ended ${name}`);
+    this.activeGestures.delete(hand);
+    this._updateGestureHighlight();
+  }
+
+  dispose() {
+    if (xb.core.gestureRecognition) {
+      xb.core.gestureRecognition.removeEventListener(
+          'gesturestart', this._onGestureStart);
+      xb.core.gestureRecognition.removeEventListener(
+          'gestureend', this._onGestureEnd);
+      xb.core.gestureRecognition.removeEventListener(
+          'gestureupdate', this._onGestureUpdate);
+    }
   }
 }

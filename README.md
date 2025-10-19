@@ -31,6 +31,9 @@ immersive applications with features like:
 
 - **Hand Tracking & Gestures:** Access advanced hand tracking, custom
   gestures with TensorFlow Lite / PyTorch models, and interaction events.
+- **Gesture Recognition Block:** Enable reusable pinch, fist, thumb-up, and
+  other gestures via `options.enableGestures()` and listen for
+  `gesturestart/update/end` events across blocks.
 - **World Understanding:** Present samples with depth sensing, geometry-aware
   physics, and object recognition with Gemini in both XR and desktop simulator.
 - **AI Integration:** Seamlessly connect to Gemini for multimodal

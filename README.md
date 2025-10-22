@@ -43,9 +43,6 @@ immersive applications with features like:
 - **Cross-Platform:** Write once and deploy to both XR devices and desktop
   Chrome browsers.
 
-For gesture configuration details, see
-[`docs/docs/manual/hand_gestures.md`](docs/docs/manual/hand_gestures.md).
-
 We welcome all contributors to foster an AI + XR community! Read our
 [blog post](https://research.google/blog/xr-blocks-accelerating-ai-xr-innovation/)
 and [white paper](https://arxiv.org/abs/2509.25504) for a visionary roadmap.

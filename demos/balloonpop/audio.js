@@ -1,102 +1,48 @@
-import * as THREE from 'three';
+// --- AUDIO CONTEXT (Retro Noise Pop) ---
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-class AudioEngine {
-  constructor(camera) {
-    if (!camera) {
-      console.warn('AudioEngine requires a camera to be initialized.');
-      return;
-    }
-    this.listener = new THREE.AudioListener();
-    camera.add(this.listener);
+export function playPopSound() {
+  if (audioContext.state === 'suspended') audioContext.resume();
+  const noiseSource = audioContext.createBufferSource();
+  const bandpass = audioContext.createBiquadFilter();
+  const gainNode = audioContext.createGain();
+  const now = audioContext.currentTime;
+
+  const sampleRate = audioContext.sampleRate;
+  const bufferSize = sampleRate * 0.15;
+  const noiseBuffer = audioContext.createBuffer(1, bufferSize, sampleRate);
+  const output = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    output[i] = Math.random() * 2 - 1;
   }
+  noiseSource.buffer = noiseBuffer;
 
-  _createOscillator(type, from, to, time) {
-    if (!this.listener) return null;
-    const audioContext = this.listener.context;
-    const oscillator = audioContext.createOscillator();
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(from, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(
-      to,
-      audioContext.currentTime + time
-    );
-    return oscillator;
-  }
+  bandpass.type = 'bandpass';
+  bandpass.frequency.setValueAtTime(3000, now);
+  bandpass.Q.setValueAtTime(1.2, now);
 
-  _createGain(from, to, time) {
-    if (!this.listener) return null;
-    const audioContext = this.listener.context;
-    const gain = audioContext.createGain();
-    gain.gain.setValueAtTime(from, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(to, audioContext.currentTime + time);
-    return gain;
-  }
+  gainNode.gain.setValueAtTime(0, now);
+  gainNode.gain.linearRampToValueAtTime(0.8, now + 0.002);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
-  play(sound, volume = 1.0) {
-    if (!this.listener) return;
-    const audioContext = this.listener.context;
-    if (sound === 'pop') {
-      const oscillator = this._createOscillator('triangle', 400, 100, 0.1);
-      const gain = this._createGain(volume, 0.01, 0.1);
-      if (!oscillator || !gain) return;
-      oscillator.connect(gain);
-      gain.connect(this.listener.gain);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
-    } else if (sound === 'throw') {
-      const noise = audioContext.createBufferSource();
-      const bufferSize = audioContext.sampleRate * 0.2; // 0.2 seconds
-      const buffer = audioContext.createBuffer(
-        1,
-        bufferSize,
-        audioContext.sampleRate
-      );
-      const output = buffer.getChannelData(0);
-
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1;
-      }
-      noise.buffer = buffer;
-
-      const bandpass = audioContext.createBiquadFilter();
-      bandpass.type = 'bandpass';
-      bandpass.frequency.setValueAtTime(800, audioContext.currentTime);
-      bandpass.frequency.linearRampToValueAtTime(
-        1500,
-        audioContext.currentTime + 0.2
-      );
-
-      const gain = this._createGain(0.01, volume, 0.05);
-      if (!gain) return;
-      gain.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.2
-      );
-
-      noise.connect(bandpass);
-      bandpass.connect(gain);
-      gain.connect(this.listener.gain);
-
-      noise.start(audioContext.currentTime);
-      noise.stop(audioContext.currentTime + 0.2);
-    }
-  }
+  noiseSource.connect(bandpass);
+  bandpass.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  noiseSource.start(0);
 }
 
-let instance = null;
-
-export const setCameraForAudio = (camera) => {
-  instance = new AudioEngine(camera);
-};
-
-export const audio = {
-  play: (sound) => {
-    if (instance) {
-      instance.play(sound);
-    } else {
-      console.warn(
-        'Audio engine not initialized. Call setCameraForAudio first.'
-      );
-    }
-  },
-};
+export function playWhooshSound() {
+  if (audioContext.state === 'suspended') audioContext.resume();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  const now = audioContext.currentTime;
+  oscillator.type = 'sawtooth';
+  oscillator.frequency.setValueAtTime(800, now);
+  oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+  gainNode.gain.setValueAtTime(0.3, now);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  oscillator.start(0);
+  oscillator.stop(now + 0.1);
+}

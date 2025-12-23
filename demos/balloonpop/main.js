@@ -1,26 +1,26 @@
-import {AmbientLight} from 'three';
+import * as xb from 'xrblocks';
+import RAPIER from '@dimforge/rapier3d-simd-compat';
+import 'xrblocks/addons/simulator/SimulatorAddons.js';
+import {BalloonGame, GROUP_WORLD} from './BalloonPop.js';
 
-import {XRBlocks} from 'xrblocks';
-import {BalloonPop} from './BalloonPop.js';
-import {setCameraForAudio} from './audio.js';
+document.addEventListener('DOMContentLoaded', () => {
+  const o = new xb.Options();
+  o.enableUI();
+  o.physics.RAPIER = RAPIER;
+  o.physics.useEventQueue = true;
+  o.physics.worldStep = true;
+  o.hands.enabled = true;
+  o.simulator.defaultMode = xb.SimulatorMode.POSE;
 
-const setup = async () => {
-  const xr = new XRBlocks({
-    debug: true,
-  });
+  // START DISABLED to avoid Simulator Camera-Clone Crash
+  o.depth.enabled = false;
+  if (o.depth.depthMesh) {
+    o.depth.depthMesh.enabled = true;
+    o.depth.depthMesh.physicsEnabled = true;
+    o.depth.depthMesh.collisionGroups = GROUP_WORLD;
+    o.depth.depthMesh.colliderUpdateFps = 5;
+  }
 
-  setCameraForAudio(xr.camera);
-
-  const ambientLight = new AmbientLight(0xffffff, 1.0);
-  xr.scene.add(ambientLight);
-
-  const balloonPop = new BalloonPop(xr, {});
-
-  xr.start();
-  xr.scene.add(balloonPop.balloonsGroup);
-  xr.setAnimationLoop(() => {
-    const delta = xr.clock.getDelta();
-    balloonPop.update(delta);
-  });
-};
-setup();
+  xb.add(new BalloonGame());
+  xb.init(o);
+});

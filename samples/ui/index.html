@@ -221,7 +221,12 @@
               .addIconButton({text: 'skip_next', fontSize: 0.4});
             controlsRow.addCol({weight: 0.2});
           }
-          const orbiter = playerGrid.addOrbiter();
+          const orbiter = playerGrid.addOrbiter({
+            orbiterPosition: 'top-right',
+            orbiterScale: 0.2,
+            offset: 0.0,
+            elevation: 0.0,
+          });
           orbiter.addExitButton();
           panel.updateLayouts();
         }

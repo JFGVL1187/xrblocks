@@ -10,7 +10,6 @@ import {DepthTextures} from './DepthTextures';
 
 export class DepthMesh extends MeshScript {
   static dependencies = {
-    camera: THREE.Camera,
     renderer: THREE.WebGLRenderer,
   };
   static isDepthMesh = true;
@@ -32,8 +31,8 @@ export class DepthMesh extends MeshScript {
   private colliderUpdateFps: number;
 
   private renderer!: THREE.WebGLRenderer;
-  private camera!: THREE.Camera;
-  private projectionMatrixInverse = new THREE.Matrix4();
+  private projectionMatrixInverse: Readonly<THREE.Matrix4> =
+    new THREE.Matrix4();
   private lastColliderUpdateTime = 0;
   private options: DepthMeshOptions;
   private depthTextureMaterialUniforms?;
@@ -90,7 +89,6 @@ export class DepthMesh extends MeshScript {
 
     this.visible = options.showDebugTexture || options.renderShadow;
     this.options = options;
-    this.projectionMatrixInverse = new THREE.Matrix4();
     this.lastColliderUpdateTime = performance.now();
     this.updateVertexNormals = options.updateVertexNormals;
     this.colliderUpdateFps = options.colliderUpdateFps;
@@ -112,14 +110,7 @@ export class DepthMesh extends MeshScript {
   /**
    * Initialize the depth mesh.
    */
-  init({
-    camera,
-    renderer,
-  }: {
-    camera: THREE.Camera;
-    renderer: THREE.WebGLRenderer;
-  }) {
-    this.camera = camera;
+  init({renderer}: {renderer: THREE.WebGLRenderer}) {
     this.renderer = renderer;
   }
 
@@ -127,12 +118,11 @@ export class DepthMesh extends MeshScript {
    * Updates the depth data and geometry positions based on the provided camera
    * and depth data.
    */
-  updateDepth(depthData: XRCPUDepthInformation) {
-    const camera = this.renderer.xr?.getCamera?.()?.cameras?.[0] || this.camera;
-    if (!camera) return;
-
-    // Inverts the projection matrix.
-    this.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+  updateDepth(
+    depthData: Readonly<XRCPUDepthInformation>,
+    projectionMatrixInverse: Readonly<THREE.Matrix4>
+  ) {
+    this.projectionMatrixInverse = projectionMatrixInverse;
 
     this.minDepth = 8;
     this.maxDepth = 0;
@@ -175,11 +165,14 @@ export class DepthMesh extends MeshScript {
     this.updateColliderIfNeeded();
   }
 
-  updateGPUDepth(depthData: XRWebGLDepthInformation) {
-    this.updateDepth(this.convertGPUToGPU(depthData));
+  updateGPUDepth(
+    depthData: Readonly<XRWebGLDepthInformation>,
+    projectionMatrixInverse: Readonly<THREE.Matrix4>
+  ) {
+    this.updateDepth(this.convertGPUToGPU(depthData), projectionMatrixInverse);
   }
 
-  convertGPUToGPU(depthData: XRWebGLDepthInformation) {
+  convertGPUToGPU(depthData: Readonly<XRWebGLDepthInformation>) {
     if (!this.depthTarget) {
       this.depthTarget = new THREE.WebGLRenderTarget(
         depthData.width,
@@ -338,7 +331,7 @@ export class DepthMesh extends MeshScript {
   /**
    * Optimizes collider updates to run periodically based on the specified FPS.
    */
-  updateColliderIfNeeded() {
+  private updateColliderIfNeeded() {
     const timeSinceLastUpdate = performance.now() - this.lastColliderUpdateTime;
     if (this.RAPIER && timeSinceLastUpdate > 1000 / this.colliderUpdateFps) {
       this.getWorldPosition(this.worldPosition);
@@ -412,40 +405,16 @@ export class DepthMesh extends MeshScript {
     this.lastColliderUpdateTime = performance.now();
   }
 
-  getDepth(
-    raycaster: THREE.Raycaster,
-    ndc: THREE.Vector2,
-    camera: THREE.Camera
-  ) {
-    // Convert the point from blendedWorld space to normalized device
-    // coordinates (NDC) const ndc = point.clone().project(camera);
-
-    // Create a Vector2 for the NDC x, y coordinates (used by the Raycaster)
-    const ndc2D = new THREE.Vector2(ndc.x, ndc.y);
-
-    // Set up the Raycaster to cast a ray from the camera through the NDC point
-    raycaster.setFromCamera(ndc2D, camera);
-
-    // Check for intersections with the mesh
-    const intersects = raycaster.intersectObject(this);
-
-    // If an intersection is found, calculate the distance from the point to the
-    // intersection
-    if (intersects.length > 0) {
-      const distance = intersects[0].distance;
-      return distance;
-    } else {
-      return -1;
-    }
-  }
-
   /**
    * Customizes raycasting to compute normals for intersections.
    * @param raycaster - The raycaster object.
    * @param intersects - Array to store intersections.
    * @returns - True if intersections are found.
    */
-  raycast(raycaster: THREE.Raycaster, intersects: THREE.Intersection[]) {
+  override raycast(
+    raycaster: THREE.Raycaster,
+    intersects: THREE.Intersection[]
+  ) {
     const intersections: THREE.Intersection[] = [];
     if (this.downsampledMesh) {
       this.downsampledMesh.raycast(raycaster, intersections);

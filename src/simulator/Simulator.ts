@@ -8,7 +8,6 @@ import {XREffects} from '../core/components/XREffects';
 import {Options} from '../core/Options';
 import {Script} from '../core/Script';
 import {Depth} from '../depth/Depth';
-import {DepthMesh} from '../depth/DepthMesh';
 import {Input} from '../input/Input';
 
 import {SimulatorCamera} from './SimulatorCamera';
@@ -112,7 +111,6 @@ export class Simulator extends Script {
     if (this.initialized) return;
     // Get optional dependencies from the registry.
     const deviceCamera = registry.get(XRDeviceCamera);
-    const depthMesh = registry.get(DepthMesh);
     this.options = simulatorOptions;
     camera.position.copy(this.options.initialCameraPosition);
     this.userInterface.init(simulatorOptions, this.controls, this.hands);
@@ -130,9 +128,6 @@ export class Simulator extends Script {
     if (options.depth.enabled) {
       this.renderDepthPass = true;
       this.depth.init(renderer, camera, depth);
-      if (options.depth.depthMesh.enabled && depthMesh) {
-        camera.add(depthMesh);
-      }
     }
     scene.add(camera);
 

@@ -89,6 +89,9 @@ export class VideoStream<
 
   protected stream_: MediaStream | null = null;
   protected video_ = document.createElement('video');
+  get video() {
+    return this.video_;
+  }
 
   private willCaptureFrequently_: boolean;
   private frozenTexture_: THREE.Texture | null = null;

@@ -1,6 +1,18 @@
 import * as THREE from 'three';
 import type RAPIER_NS from 'rapier3d';
 
+function toFlatArray(array: Float32Array | Float32Array[]) {
+  if (!Array.isArray(array)) return array;
+  const result = new Float32Array(
+    array.reduce((sum, arr) => sum + arr.length, 0)
+  );
+  array.reduce(
+    (offset, arr) => (result.set(arr, offset), offset + arr.length),
+    0
+  );
+  return result;
+}
+
 export class DetectedMesh extends THREE.Mesh {
   private RAPIER?: typeof RAPIER_NS;
   private rigidBody?: RAPIER_NS.RigidBody;
@@ -10,8 +22,8 @@ export class DetectedMesh extends THREE.Mesh {
 
   constructor(xrMesh: XRMesh, material: THREE.Material) {
     const geometry = new THREE.BufferGeometry();
-    const vertices = new Float32Array(xrMesh.vertices);
-    const indices = new Uint32Array(xrMesh.indices);
+    const vertices = toFlatArray(xrMesh.vertices);
+    const indices = xrMesh.indices;
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
     geometry.setIndex(new THREE.BufferAttribute(indices, 1));
     geometry.computeVertexNormals();
@@ -36,8 +48,8 @@ export class DetectedMesh extends THREE.Mesh {
     if (mesh.lastChangedTime === this.lastChangedTime) return;
     this.lastChangedTime = mesh.lastChangedTime;
     const geometry = new THREE.BufferGeometry();
-    const vertices = new Float32Array(mesh.vertices);
-    const indices = new Uint32Array(mesh.indices);
+    const vertices = toFlatArray(mesh.vertices);
+    const indices = mesh.indices;
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
     geometry.setIndex(new THREE.BufferAttribute(indices, 1));
     geometry.computeVertexNormals();

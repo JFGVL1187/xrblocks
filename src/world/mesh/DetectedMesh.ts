@@ -60,4 +60,16 @@ export class DetectedMesh extends THREE.Mesh {
       );
     }
   }
+
+  dispose() {
+    if (this.blendedWorld && this.collider) {
+      this.blendedWorld.removeCollider(this.collider, false);
+      this.collider = undefined;
+    }
+    if (this.blendedWorld && this.rigidBody) {
+      this.blendedWorld.removeRigidBody(this.rigidBody);
+      this.rigidBody = undefined;
+    }
+    this.geometry.dispose();
+  }
 }

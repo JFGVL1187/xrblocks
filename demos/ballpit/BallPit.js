@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as xb from 'xrblocks';
 import {palette} from 'xrblocks/addons/utils/Palette.js';
+import Stats from 'three/addons/libs/stats.module.js';
 
 import {BallShooter} from './BallShooter.js';
 
@@ -30,17 +31,68 @@ export class BallPit extends xb.Script {
     this.lastBallCreatedTimeForController = new Map();
     this.pointer = new THREE.Vector2();
     this.velocity = new THREE.Vector3();
+
+    // Initialize Stats for FPS dashboard
+    this.stats = new Stats();
+    this.stats.dom.style.width = '80px';
+    this.stats.dom.style.height = '48px';
+    this.stats.showPanel(0); // 0: fps, 1: ms, 2: mb
+    document.body.appendChild(this.stats.dom);
+
+    this.statsMesh = null;
   }
 
   init() {
     xb.add(this);
+    this.createStatsMesh();
   }
 
   update() {
     super.update();
+
+    // Update stats
+    this.stats.update();
+    if (this.statsMesh && this.statsMesh.material.map) {
+      this.statsMesh.material.map.needsUpdate = true;
+    }
+
+    // Update stats mesh position to follow camera in XR mode
+    if (this.statsMesh && xb.core.renderer.xr.isPresenting) {
+      const camera = xb.core.renderer.xr.getCamera();
+      if (camera && camera.cameras && camera.cameras.length > 0) {
+        const xrCamera = camera.cameras[0];
+        // Position stats mesh relative to camera
+        const offset = new THREE.Vector3(-0.15, 0.15, -0.5);
+        offset.applyQuaternion(xrCamera.quaternion);
+        this.statsMesh.position.copy(xrCamera.position).add(offset);
+        this.statsMesh.quaternion.copy(xrCamera.quaternion);
+        this.statsMesh.rotateY(Math.PI / 6);
+      }
+    }
+
     for (const controller of xb.core.input.controllers) {
       this.controllerUpdate(controller);
     }
+  }
+
+  /**
+   * Creates a 3D mesh to display the FPS stats in XR space.
+   */
+  createStatsMesh() {
+    const statsCanvas = this.stats.dom.children[0];
+    const geometry = new THREE.PlaneGeometry(0.25, 0.15);
+    const texture = new THREE.CanvasTexture(statsCanvas);
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide,
+    });
+    this.statsMesh = new THREE.Mesh(geometry, material);
+
+    this.statsMesh.position.set(-0.15, 0.15, -0.5);
+
+    this.add(this.statsMesh);
   }
 
   // Adds hemisphere light for ambient lighting and directional light.
